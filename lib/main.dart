@@ -116,6 +116,9 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void stopTracking(){
+    timer.cancel();
+  }
 
 
 }
