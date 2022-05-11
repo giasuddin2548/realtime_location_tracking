@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:location_tracking/models/DataModel.dart';
 
 void main() {
   runApp(const MyApp());
@@ -34,7 +36,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   double lat=0.0;
   double lan=0.0;
-  List<LocationData> locationData=[];
+  List<DataModel> locationData=[];
   var positionNo=0;
 
   late Timer timer;
@@ -94,27 +96,62 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void startLocation() async{
-    timer=Timer.periodic(const Duration(seconds: 3), (timer) {
-      tracking();
+    timer=Timer.periodic(const Duration(seconds: 30), (timer) {
+      submitTracking();
     });
   }
 
-  void tracking(){
-    _determinePosition().then((value){
+  void submitTracking(){
+    Dio _dio=Dio();
+    _determinePosition().then((value)async{
 
       // print(value.latitude);
       // print(value.longitude);
       // var a=0;
       // a++;
       // locationData.add(LocationData(latitude: 1.1, longitude: 1.1, positionCount: 1));
-      setState(() {
+      // setState(() {
+      //
+      //   var a=0;
+      //
+      //   locationData.add(LocationData(latitude:value.longitude, longitude: value.longitude, positionCount: a));
+      // });
 
-        var a=0;
+      var response=await _dio.get("https://mp.mobilestorebd.com/api_submit_location.php?userId=105&latitude=${value.latitude}&longitude=${value.longitude}");
 
-        locationData.add(LocationData(latitude:value.longitude, longitude: value.longitude, positionCount: a));
-      });
+      if(response.statusCode==200){
+        print('submit: ${response.statusCode}');
+        var d=response.data['EBOOK_APP'][0]['msg'];
+        print('msg: $d');
+        getTracking();
+      }else{
+
+      }
+
+
+
     });
   }
+
+  void getTracking()async{
+    Dio _dio=Dio();
+    var response=await _dio.get("https://mp.mobilestorebd.com/api.php?location_by_userId=105");
+
+    if(response.statusCode==200){
+      var list=response.data['tracingById'] as List;
+      List<DataModel> dataList=list.map((e) => DataModel.fromJson(e)).toList();
+      locationData.clear();
+      locationData.addAll(dataList);
+      print(locationData.length);
+
+
+    }else{
+
+    }
+  }
+
+
+  ///Stop Get tracking api https://mp.mobilestorebd.com/api.php?location_by_userId=105
 
   void stopTracking(){
     timer.cancel();
@@ -122,11 +159,4 @@ class _MyHomePageState extends State<MyHomePage> {
 
 
 }
-class LocationData{
-  double latitude;
-  double longitude;
-  int positionCount;
 
-  LocationData({required this.latitude, required this.longitude, required this.positionCount});
-
-}
